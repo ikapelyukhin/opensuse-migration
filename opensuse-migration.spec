@@ -29,8 +29,9 @@ BuildRequires:  %{rubygem thor}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildArch:      noarch
 
-%define state_dir %{_sharedstatedir}/opensuse-migration
-%define data_dir %{_datadir}/opensuse-migration
+# FIXME: macros that work for both 42.* and 15.*
+%define state_dir /var/lib/opensuse-migration
+%define data_dir /usr/share/opensuse-migration
 
 %description
 

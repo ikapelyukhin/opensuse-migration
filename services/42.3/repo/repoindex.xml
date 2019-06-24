@@ -1,0 +1,21 @@
+<repoindex>
+  <!-- pool -->
+  <repo name="Main Repository" alias="Pool" url="https://download.opensuse.org/distribution/leap/42.3/repo/oss/" autorefresh="false" enabled="true"/>
+  <repo name="Non-OSS Repository" alias="Pool_NonFree" url="https://download.opensuse.org/distribution/leap/42.3/repo/non-oss/" autorefresh="false" enabled="true"/>
+
+  <!-- update -->
+  <repo name="Main Update Repository" alias="Update" url="https://download.opensuse.org/update/leap/42.3/oss/" autorefresh="true" enabled="true"/>
+  <repo name="Update Repository (Non-Oss)" alias="Update_NonFree" url="https://download.opensuse.org/update/leap/42.3/non-oss/" autorefresh="true" enabled="true"/>
+
+  <!-- debug pool -->
+  <repo name="Debug Repository" alias="Debug" url="https://download.opensuse.org/debug/distribution/leap/42.3/repo/oss/" autorefresh="false" enabled="false"/>
+  <repo name="Debug Repository (Non-Oss)" alias="Debug_NonFree" url="https://download.opensuse.org/debug/distribution/leap/42.3/repo/non-oss/" autorefresh="false" enabled="false"/>
+
+  <!-- debug update -->
+  <repo name="Update Repository (Debug)" alias="Debug_Update" url="https://download.opensuse.org/debug/update/leap/42.3/oss/" autorefresh="true" enabled="false"/>
+  <repo name="Update Repository (Debug, Non-OSS)" alias="Debug_Update_NonFree" url="https://download.opensuse.org/debug/update/leap/42.3/repo/non-oss/" autorefresh="true" enabled="false"/>
+
+  <!-- source pool -->
+  <repo name="Source Repository" alias="Source" url="https://download.opensuse.org/source/distribution/leap/42.3/repo/oss/" autorefresh="true" enabled="false"/>
+  <repo name="Source Repository (Non-OSS)" alias="Source_NonFree" url="https://download.opensuse.org/source/distribution/leap/42.3/repo/non-oss/" autorefresh="true" enabled="false"/>
+</repoindex>

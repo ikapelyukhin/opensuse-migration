@@ -1,3 +1,7 @@
+# openSUSE migration
+
+Provides zypper services with repo definitions as well as `leap-cli` utility to switch between versions (as an alternative to [`tumbleweed-cli`](2)).
+
 ### Usage
 
 1. `zypper in opensuse-migration` -- the package will provide a local zypper service;
@@ -12,6 +16,8 @@
 1. RIS: XML format, URL is mandatory in service `ini`; `file:` or `dir:` URLs have to point to a directory that contains `repo/repoindex.xml` in it. 
 2. Plugin: a script that prints `ini` to STDOUT; repos that come from it are volatile -- can't disable individual repos with `zypper mr -d` (reset on next service refresh).
 
+Additional details can be found in the [documentation](1).
+
 #### Zypper RIS service INI example
 
 ```
@@ -22,7 +28,6 @@ autorefresh=1
 url = https://example.org/
 type = ris
 ```
-
 #### Zypper RIS service XML example
 
 ```xml
@@ -34,4 +39,5 @@ type = ris
 
 ### Links
 
-1. https://doc.opensuse.org/projects/libzypp/12.2/zypp-services.html
+ [1]: https://doc.opensuse.org/projects/libzypp/12.2/zypp-services.html
+ [2]: https://github.com/boombatower/tumbleweed-cli
