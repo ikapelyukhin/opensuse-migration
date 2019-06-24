@@ -1,0 +1,200 @@
+#!/usr/bin/ruby
+
+# Copyright (c) 2019 SUSE LLC  All rights reserved.
+#
+# leap-cli is free software: you can redistribute it
+# and/or modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, version 2 of
+# the License.
+#
+# leap-cli is distributed in the hope that it will
+# be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+# of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this leap-cli. If not, see <http://www.gnu.org/licenses/>.
+#
+
+require 'thor'
+require 'etc'
+
+class LeapCLI < Thor
+  SERVICES_DIR        = '/usr/share/opensuse-migration/services'.freeze
+  REPO_BACKUP_DIR     = '/var/lib/opensuse-migration/backup'.freeze
+  PRODUCT_FILENAMES   = %w[/etc/products.d/baseproduct /etc/products.d/openSUSE.prod].freeze
+  ZYPPER_SERVICES_DIR = '/etc/zypp/services.d'.freeze
+  ZYPPER_REPOS_DIR    = '/etc/zypp/repos.d'.freeze
+
+  package_name "leap-cli"
+
+  desc "init", "Detect OS version and initialize zypper service"
+  def init
+    ensure_root
+
+    os_version = detect_version # TODO: allow to specify version explicitly
+    puts "Detected version #{os_version}"
+
+    # TODO: check if running as root
+
+    cleanup_services
+    add_service(os_version)
+    cleanup_old_repos
+
+  rescue StandardError => e
+    warn e.to_s
+    exit 1
+  end
+
+  desc "migrate", "Migrate to a different openSUSE version"
+  def migrate
+    ensure_root
+
+    sorted_versions = sort_craziness(get_known_services.keys)
+
+    puts "Available openSUSE versions:"
+    puts sorted_versions.each_with_index.map { |ver, i| " #{i + 1}) #{ver}" }.join("\n")
+    puts ""
+
+    choice = ask("Pick a version to migrate to:", limited_to: (1 .. sorted_versions.size).map(&:to_s))
+
+    cleanup_services
+    add_service(sorted_versions[choice.to_i - 1].to_s)
+    cleanup_old_repos
+
+    puts "Run 'zypper dup' to perform the migration."
+  rescue StandardError => e
+    warn e.to_s
+    exit 1
+  end
+
+  desc "cleanup", "Clean up services added by leap-cli"
+  def cleanup
+    ensure_root
+    cleanup_services
+  end
+
+  protected
+
+  def ensure_root
+    raise "Root privileges are required." unless ::Etc.getpwuid(Process.euid).uid == 0
+  end
+
+  # How hard monotonically increasing sequences are? (╯°□°)╯︵ ┻━┻
+  def sort_craziness(versions)
+    versions.map(&:to_f).sort do |a, b|
+      a -= 30 if a >= 42
+      b -= 30 if b >= 42
+      a <=> b
+    end
+  end
+
+  def detect_version
+    PRODUCT_FILENAMES.each do |filename|
+      next unless File.exists?(filename)
+
+      File.readlines(filename).each do |line|
+        matches = line.match(%r{<version>(.*?)</version>})
+        return matches[1] if matches
+      end
+    end
+
+    raise "Can't detect OS version"
+  end
+
+  def get_known_services
+    services = {}
+    Dir.glob("#{SERVICES_DIR}/*").each do |item|
+      next unless File.directory?(item)
+      services[File.basename(item)] = item
+    end
+    services
+  end
+
+  def add_service(os_version)
+    services = get_known_services
+    raise "Unknown version #{os_version}" unless services[os_version]
+
+    service_alias = "openSUSE_Leap_#{os_version}"
+    service_name = "openSUSE Leap #{os_version}"
+    service = "[#{service_alias}]\n" +
+    "name=#{service_name}\n" +
+    "enabled=1\n" +
+    "autorefresh=1\n" +
+    "url=dir://#{services[os_version]}\n" +
+    "type=ris\n"
+
+    puts "Adding service '#{service_name}'."
+    File.open(File.join(ZYPPER_SERVICES_DIR, "#{service_alias}.service"), 'w') do |f|
+      f.write(service)
+    end
+  end
+
+  def cleanup_old_repos
+    old_repo_files = []
+
+    Dir.glob("#{ZYPPER_REPOS_DIR}/*").each do |filename|
+      next unless File.file?(filename)
+
+      has_correct_url = false
+      blongs_to_service = false
+      File.readlines(filename).each do |line|
+        has_correct_url = true if line =~ %r{^baseurl\s*=\s*https?://download\.opensuse\.org/(?:source|distribution|update|debug)/}
+        blongs_to_service = true if line =~ %r{^service\s*=}
+      end
+
+      next if blongs_to_service || !has_correct_url
+
+      old_repo_files << filename
+    end
+
+    return if old_repo_files.empty?
+
+    puts "The following repository files have been superseded by a zypper service:"
+    puts old_repo_files.map { |f| " * #{f}"}.join("\n")
+    puts "Old repository files were backed up to #{REPO_BACKUP_DIR}."
+
+    old_repo_files.each do |filename|
+      new_filename = File.join(REPO_BACKUP_DIR, File.basename(filename))
+      File.rename(filename, new_filename)
+    end
+  end
+
+  def cleanup_services
+    Dir.glob("#{ZYPPER_SERVICES_DIR}/*").each do |filename|
+
+      next unless File.file?(filename)
+
+      service_alias = nil
+      service_url = nil
+      File.readlines(filename).each do |line|
+        matches = line.match(%r{^\s*\[(.*?)\]})
+        service_alias = matches[1] if matches
+
+        matches = line.match(%r{^\s*url\s*=\s*(.*)})
+        service_url = matches[1] if matches
+      end
+
+      if (service_alias and service_url.include?(SERVICES_DIR))
+        cleanup_service_repos(service_alias)
+        puts "Removing service #{filename}"
+        File.unlink(filename)
+      end
+    end
+  end
+
+  def cleanup_service_repos(service_alias)
+    Dir.glob("#{ZYPPER_REPOS_DIR}/*").each do |filename|
+      next unless File.file?(filename)
+
+      File.readlines(filename).each do |line|
+        if line =~ %r{^service\s*=\s*#{service_alias}}
+          puts "Removing repo #{filename}"
+          File.unlink(filename)
+        end
+      end
+    end
+  end
+end
+
+LeapCLI.start
