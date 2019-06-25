@@ -1,0 +1,20 @@
+<repoindex>
+  <!-- update -->
+  <repo name="Main Repository" alias="Main" url="https://download.opensuse.org/tumbleweed/repo/oss/" autorefresh="true" enabled="true"/>
+  <repo name="Non-OSS Repository" alias="Main_NonFree" url="https://download.opensuse.org/tumbleweed/repo/non-oss/" autorefresh="true" enabled="true"/>
+
+  <!-- debug -->
+  <repo name="Debug Repository" alias="Debug" url="https://download.opensuse.org/tumbleweed/repo/debug/" autorefresh="true" enabled="false"/>
+
+  <!-- source -->
+  <repo name="Source Repository" alias="Source" url="https://download.opensuse.org/tumbleweed/repo/src-oss/" autorefresh="true" enabled="false"/>
+  <repo name="Source Repository (Non-OSS)" alias="Source_NonFree" url="https://download.opensuse.org/tumbleweed/repo/src-non-oss/" autorefresh="true" enabled="false"/>
+</repoindex>
+
+
+
+
+
+
+
+

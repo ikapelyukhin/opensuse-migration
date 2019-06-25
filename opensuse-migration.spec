@@ -16,7 +16,7 @@
 #
 
 Name:           opensuse-migration
-Version:        0.0.1
+Version:        0.0.2
 Release:        0
 Summary:        Easy migration between openSUSE Leap versions
 License:        GPL-2.0

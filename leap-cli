@@ -35,8 +35,6 @@ class LeapCLI < Thor
     os_version = detect_version # TODO: allow to specify version explicitly
     puts "Detected version #{os_version}"
 
-    # TODO: check if running as root
-
     cleanup_services
     add_service(os_version)
     cleanup_old_repos
@@ -82,7 +80,9 @@ class LeapCLI < Thor
 
   # How hard monotonically increasing sequences are? (╯°□°)╯︵ ┻━┻
   def sort_craziness(versions)
-    versions.map(&:to_f).sort do |a, b|
+    versions.sort do |a, b|
+      a = a == 'tumbleweed' ? 99999 : a.to_f
+      b = b == 'tumbleweed' ? 99999 : b.to_f
       a -= 30 if a >= 42
       b -= 30 if b >= 42
       a <=> b
@@ -93,13 +93,16 @@ class LeapCLI < Thor
     PRODUCT_FILENAMES.each do |filename|
       next unless File.exists?(filename)
 
+      version = nil
       File.readlines(filename).each do |line|
         matches = line.match(%r{<version>(.*?)</version>})
-        return matches[1] if matches
+        version = matches[1] if matches
+        return 'tumbleweed' if line.include?('<summary>openSUSE Tumbleweed</summary>')
       end
     end
 
-    raise "Can't detect OS version"
+    raise "Can't detect OS version" unless version
+    version
   end
 
   def get_known_services
@@ -115,8 +118,14 @@ class LeapCLI < Thor
     services = get_known_services
     raise "Unknown version #{os_version}" unless services[os_version]
 
-    service_alias = "openSUSE_Leap_#{os_version}"
-    service_name = "openSUSE Leap #{os_version}"
+    if (os_version == 'tumbleweed')
+      service_alias = "openSUSE_Tumbleweed"
+      service_name = "openSUSE Tumbleweed"
+    else
+      service_alias = "openSUSE_Leap_#{os_version}"
+      service_name = "openSUSE Leap #{os_version}"
+    end
+
     service = "[#{service_alias}]\n" +
     "name=#{service_name}\n" +
     "enabled=1\n" +
@@ -139,7 +148,7 @@ class LeapCLI < Thor
       has_correct_url = false
       blongs_to_service = false
       File.readlines(filename).each do |line|
-        has_correct_url = true if line =~ %r{^baseurl\s*=\s*https?://download\.opensuse\.org/(?:source|distribution|update|debug)/}
+        has_correct_url = true if line =~ %r{^baseurl\s*=\s*https?://download\.opensuse\.org/(?:source|distribution|update|debug|tumbleweed)/}
         blongs_to_service = true if line =~ %r{^service\s*=}
       end
 
