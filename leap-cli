@@ -90,10 +90,10 @@ class LeapCLI < Thor
   end
 
   def detect_version
+    version = nil
     PRODUCT_FILENAMES.each do |filename|
       next unless File.exists?(filename)
 
-      version = nil
       File.readlines(filename).each do |line|
         matches = line.match(%r{<version>(.*?)</version>})
         version = matches[1] if matches
